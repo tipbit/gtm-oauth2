@@ -241,6 +241,8 @@ extern NSString *const kGTMOAuth2NetworkFound;
 // Clear out any authentication values, prepare for a new request fetch
 - (void)reset;
 
+- (BOOL)shouldRefreshAccessToken;
+
 // Main authorization entry points
 //
 // These will refresh the access token, if necessary, add the access token to
@@ -314,6 +316,10 @@ extern NSString *const kGTMOAuth2NetworkFound;
 // Use these methods for serialization
 - (NSString *)persistenceResponseString;
 - (void)setKeysForPersistenceResponseString:(NSString *)str;
+
+- (NSMutableURLRequest *)makeTokenFetchRequest:(NSData**)resultParamData fetchType:(NSString**)resultFetchType tokenURL:(NSURL**)resultTokenURL refreshToken:(NSString**)resultRefreshToken;
+
+-(NSError*)handleTokenFetchResponse:(NSData*)data headers:(NSDictionary*)responseHeaders error:(NSError*)error;
 
 // method to begin fetching an access token, used by the sign-in object
 - (GTMHTTPFetcher *)beginTokenFetchWithDelegate:(id)delegate

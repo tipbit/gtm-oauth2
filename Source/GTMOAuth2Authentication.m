@@ -761,8 +761,7 @@ finishedRefreshWithFetcher:(GTMHTTPFetcher *)fetcher
   return userAgent;
 }
 
-- (GTMHTTPFetcher *)beginTokenFetchWithDelegate:(id)delegate
-                              didFinishSelector:(SEL)finishedSel {
+- (NSMutableURLRequest *)makeTokenFetchRequest:(NSData**)resultParamData fetchType:(NSString**)resultFetchType tokenURL:(NSURL**)resultTokenURL refreshToken:(NSString**)resultRefreshToken {
 
   NSMutableDictionary *paramsDict = [NSMutableDictionary dictionary];
 
@@ -845,6 +844,29 @@ finishedRefreshWithFetcher:(GTMHTTPFetcher *)fetcher
   NSString *userAgent = [self userAgent];
   [request setValue:userAgent forHTTPHeaderField:@"User-Agent"];
 
+    if (resultParamData != NULL)
+        *resultParamData = paramData;
+    if (resultFetchType != NULL)
+        *resultFetchType = fetchType;
+    if (resultTokenURL != NULL)
+        *resultTokenURL = tokenURL;
+    if (resultRefreshToken != NULL)
+        *resultRefreshToken = refreshToken;
+    return request;
+}
+
+
+- (GTMHTTPFetcher *)beginTokenFetchWithDelegate:(id)delegate
+                              didFinishSelector:(SEL)finishedSel {
+
+    NSString* fetchType = nil;
+    NSData* paramData = nil;
+    NSURL* tokenURL = nil;
+    NSString* refreshToken = nil;
+    NSURLRequest* request = [self makeTokenFetchRequest:&paramData fetchType:&fetchType tokenURL:&tokenURL refreshToken:&refreshToken];
+    if (request == nil)
+        return nil;
+
   GTMHTTPFetcher *fetcher;
   id <GTMHTTPFetcherServiceProtocol> fetcherService = self.fetcherService;
   if (fetcherService) {
@@ -894,60 +916,8 @@ finishedRefreshWithFetcher:(GTMHTTPFetcher *)fetcher
   [self notifyFetchIsRunning:NO fetcher:fetcher type:nil];
 
   NSDictionary *responseHeaders = [fetcher responseHeaders];
-  NSString *responseType = [responseHeaders valueForKey:@"Content-Type"];
-  BOOL isResponseJSON = [responseType hasPrefix:@"application/json"];
-  BOOL hasData = ([data length] > 0);
 
-  if (error) {
-    // Failed. If the error body is JSON, parse it and add it to the error's
-    // userInfo dictionary.
-    if (hasData) {
-      if (isResponseJSON) {
-        NSDictionary *errorJson = [[self class] dictionaryWithJSONData:data];
-        if ([errorJson count] > 0) {
-#if DEBUG
-          NSLog(@"Error %@\nError data:\n%@", error, errorJson);
-#endif
-          // Add the JSON error body to the userInfo of the error
-          NSMutableDictionary *userInfo;
-          userInfo = [NSMutableDictionary dictionaryWithObject:errorJson
-                                                        forKey:kGTMOAuth2ErrorJSONKey];
-          NSDictionary *prevUserInfo = [error userInfo];
-          if (prevUserInfo) {
-            [userInfo addEntriesFromDictionary:prevUserInfo];
-          }
-          error = [NSError errorWithDomain:[error domain]
-                                      code:[error code]
-                                  userInfo:userInfo];
-        }
-      }
-    }
-  } else {
-    // Succeeded; we have the requested token.
-#if DEBUG
-    NSAssert(hasData, @"data missing in token response");
-#endif
-
-    if (hasData) {
-      if (isResponseJSON) {
-        [self setKeysForResponseJSONData:data];
-      } else {
-        // Support for legacy token servers that return form-urlencoded data
-        NSString *dataStr = [[[NSString alloc] initWithData:data
-                                                   encoding:NSUTF8StringEncoding] autorelease];
-        [self setKeysForResponseString:dataStr];
-      }
-
-#if DEBUG
-      // Watch for token exchanges that return a non-bearer or unlabeled token
-      NSString *tokenType = [self tokenType];
-      if (tokenType == nil
-          || [tokenType caseInsensitiveCompare:@"bearer"] != NSOrderedSame) {
-        NSLog(@"GTMOAuth2: Unexpected token type: %@", tokenType);
-      }
-#endif
-    }
-  }
+  error = [self handleTokenFetchResponse:data headers:responseHeaders error:error];
 
   id delegate = [fetcher propertyForKey:kTokenFetchDelegateKey];
   SEL sel = NULL;
@@ -962,6 +932,65 @@ finishedRefreshWithFetcher:(GTMHTTPFetcher *)fetcher
 
   // Prevent a circular reference from retaining the delegate
   [fetcher setProperty:nil forKey:kTokenFetchDelegateKey];
+}
+
+-(NSError*)handleTokenFetchResponse:(NSData*)data headers:(NSDictionary*)responseHeaders error:(NSError*)error {
+    NSString *responseType = [responseHeaders valueForKey:@"Content-Type"];
+    BOOL isResponseJSON = [responseType hasPrefix:@"application/json"];
+    BOOL hasData = ([data length] > 0);
+
+    if (error) {
+        // Failed. If the error body is JSON, parse it and add it to the error's
+        // userInfo dictionary.
+        if (hasData) {
+            if (isResponseJSON) {
+                NSDictionary *errorJson = [[self class] dictionaryWithJSONData:data];
+                if ([errorJson count] > 0) {
+#if DEBUG
+                    NSLog(@"Error %@\nError data:\n%@", error, errorJson);
+#endif
+                    // Add the JSON error body to the userInfo of the error
+                    NSMutableDictionary *userInfo;
+                    userInfo = [NSMutableDictionary dictionaryWithObject:errorJson
+                                                                  forKey:kGTMOAuth2ErrorJSONKey];
+                    NSDictionary *prevUserInfo = [error userInfo];
+                    if (prevUserInfo) {
+                        [userInfo addEntriesFromDictionary:prevUserInfo];
+                    }
+                    error = [NSError errorWithDomain:[error domain]
+                                                code:[error code]
+                                            userInfo:userInfo];
+                }
+            }
+        }
+    } else {
+        // Succeeded; we have the requested token.
+#if DEBUG
+        NSAssert(hasData, @"data missing in token response");
+#endif
+
+        if (hasData) {
+            if (isResponseJSON) {
+                [self setKeysForResponseJSONData:data];
+            } else {
+                // Support for legacy token servers that return form-urlencoded data
+                NSString *dataStr = [[[NSString alloc] initWithData:data
+                                                           encoding:NSUTF8StringEncoding] autorelease];
+                [self setKeysForResponseString:dataStr];
+            }
+
+#if DEBUG
+            // Watch for token exchanges that return a non-bearer or unlabeled token
+            NSString *tokenType = [self tokenType];
+            if (tokenType == nil
+                || [tokenType caseInsensitiveCompare:@"bearer"] != NSOrderedSame) {
+                NSLog(@"GTMOAuth2: Unexpected token type: %@", tokenType);
+            }
+#endif
+        }
+    }
+
+    return error;
 }
 
 #pragma mark Fetch Notifications
