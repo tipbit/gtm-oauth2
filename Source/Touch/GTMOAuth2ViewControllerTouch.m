@@ -772,16 +772,16 @@ static Class gSignInClass = Nil;
   return YES;
 }
 
-- (void)updateUI {
-  [backButton_ setEnabled:[[self webView] canGoBack]];
-  [forwardButton_ setEnabled:[[self webView] canGoForward]];
-}
+//- (void)updateUI {
+//  [backButton_ setEnabled:[[self webView] canGoBack]];
+//  [forwardButton_ setEnabled:[[self webView] canGoForward]];
+//}
 
 - (void)webViewDidStartLoad:(UIWebView *)webView {
   [self notifyWithName:kGTMOAuth2WebViewStartedLoading
                webView:webView
                   kind:nil];
-  [self updateUI];
+//  [self updateUI];
 }
 
 - (void)webViewDidFinishLoad:(UIWebView *)webView {
@@ -808,8 +808,19 @@ static Class gSignInClass = Nil;
     [initialActivityIndicator_ setHidden:YES];
     [signIn_ cookiesChanged:[NSHTTPCookieStorage sharedHTTPCookieStorage]];
 
-    [self updateUI];
+//    [self updateUI];
   }
+    
+    //FORCE HTML TO FIT. The viewport on accounts.google.com/o/oauth2 doesn't play nice with various devices, and webView/scalesToFit doesn't always work. -SCEARCE
+    CGSize contentSize = webView.scrollView.contentSize;
+    CGSize viewSize = self.view.bounds.size;
+    float rw = viewSize.width / contentSize.width;
+    if (rw != 1.0) {
+        webView.scrollView.minimumZoomScale = rw;
+        webView.scrollView.maximumZoomScale = rw;
+        webView.scrollView.zoomScale = rw;
+        NSLog(@"webViewDidFinishLoad resized webView's scrollView. Scale: %f", rw);
+    }
 }
 
 - (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error {
