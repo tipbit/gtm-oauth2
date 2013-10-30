@@ -1321,7 +1321,13 @@ finishedRefreshWithFetcher:(GTMHTTPFetcher *)fetcher
     NSString *plainKey = [[self class] unencodedOAuthParameterForString:key];
     NSString *plainValue = [[self class] unencodedOAuthParameterForString:value];
 
-    [responseDict setObject:plainValue forKey:plainKey];
+    if ((plainValue != nil) && (plainKey != nil)) {
+        [responseDict setObject:plainValue forKey:plainKey];
+    }
+    else {
+        NSLog(@"plainValue or plainKey is nil. Skipping.");
+    }
+      
   }
 
   return responseDict;
