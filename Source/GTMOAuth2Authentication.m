@@ -72,7 +72,6 @@ static NSString *const kOAuth2RefreshTokenKey  = @"refresh_token";
 static NSString *const kOAuth2ClientIDKey      = @"client_id";
 static NSString *const kOAuth2ClientSecretKey  = @"client_secret";
 static NSString *const kOAuth2RedirectURIKey   = @"redirect_uri";
-static NSString *const kOAuth2ResponseTypeKey  = @"response_type";
 static NSString *const kOAuth2ScopeKey         = @"scope";
 static NSString *const kOAuth2ErrorKey         = @"error";
 static NSString *const kOAuth2TokenTypeKey     = @"token_type";
@@ -91,7 +90,6 @@ static NSString *const kUserEmailIsVerifiedKey = @"isVerified";
 static NSString *const kTokenFetchDelegateKey = @"delegate";
 static NSString *const kTokenFetchSelectorKey = @"sel";
 
-static NSString *const kRefreshFetchArgsKey = @"requestArgs";
 
 // If GTMNSJSONSerialization is available, it is used for formatting JSON
 #if (TARGET_OS_MAC && !TARGET_OS_IPHONE && (MAC_OS_X_VERSION_MAX_ALLOWED < 1070)) || \
@@ -775,7 +773,7 @@ finishedRefreshWithFetcher:(GTMHTTPFetcher *)fetcher
   if (refreshToken) {
     // We have a refresh token
     grantType = @"refresh_token";
-    [paramsDict setObject:refreshToken forKey:@"refresh_token"];
+    [paramsDict setObject:refreshToken forKey:kOAuth2RefreshTokenKey];
 
     NSString *refreshScope = self.refreshScope;
     if ([refreshScope length] > 0) {
@@ -786,23 +784,23 @@ finishedRefreshWithFetcher:(GTMHTTPFetcher *)fetcher
   } else if (code) {
     // We have a code string
     grantType = @"authorization_code";
-    [paramsDict setObject:code forKey:@"code"];
+    [paramsDict setObject:code forKey:kOAuth2CodeKey];
 
     NSString *redirectURI = self.redirectURI;
     if ([redirectURI length] > 0) {
-      [paramsDict setObject:redirectURI forKey:@"redirect_uri"];
+      [paramsDict setObject:redirectURI forKey:kOAuth2RedirectURIKey];
     }
     
     NSString *scope = self.scope;
     if ([scope length] > 0) {
-      [paramsDict setObject:scope forKey:@"scope"];
+      [paramsDict setObject:scope forKey:kOAuth2ScopeKey];
     }
     
     fetchType = kGTMOAuth2FetchTypeToken;
   } else if (assertion) {
     // We have an assertion string
     grantType = @"http://oauth.net/grant_type/jwt/1.0/bearer";
-    [paramsDict setObject:assertion forKey:@"assertion"];
+    [paramsDict setObject:assertion forKey:kOAuth2AssertionKey];
     fetchType = kGTMOAuth2FetchTypeAssertion;
   } else {
 #if DEBUG
@@ -814,12 +812,12 @@ finishedRefreshWithFetcher:(GTMHTTPFetcher *)fetcher
 
   NSString *clientID = self.clientID;
   if ([clientID length] > 0) {
-    [paramsDict setObject:clientID forKey:@"client_id"];
+    [paramsDict setObject:clientID forKey:kOAuth2ClientIDKey];
   }
 
   NSString *clientSecret = self.clientSecret;
   if ([clientSecret length] > 0) {
-    [paramsDict setObject:clientSecret forKey:@"client_secret"];
+    [paramsDict setObject:clientSecret forKey:kOAuth2ClientSecretKey];
   }
 
   NSDictionary *additionalParams = self.additionalTokenRequestParameters;
