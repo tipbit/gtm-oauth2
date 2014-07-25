@@ -811,16 +811,6 @@ static Class gSignInClass = Nil;
 //    [self updateUI];
   }
     
-    //FORCE HTML TO FIT. The viewport on accounts.google.com/o/oauth2 doesn't play nice with various devices, and webView/scalesToFit doesn't always work. -SCEARCE
-    CGSize contentSize = webView.scrollView.contentSize;
-    CGSize viewSize = self.view.bounds.size;
-    float rw = viewSize.width / contentSize.width;
-    if (rw != 1.0) {
-        webView.scrollView.minimumZoomScale = rw;
-        webView.scrollView.maximumZoomScale = rw;
-        webView.scrollView.zoomScale = rw;
-        NSLog(@"webViewDidFinishLoad resized webView's scrollView. Scale: %f", rw);
-    }
 }
 
 - (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error {
