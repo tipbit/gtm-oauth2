@@ -388,6 +388,7 @@ finishedWithAuth:(GTMOAuth2Authentication *)auth
 
 
 - (void)viewDidLoad {
+  [super viewDidLoad];
   [self setUpNavigation];
 }
 
