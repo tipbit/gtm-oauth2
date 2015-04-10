@@ -16,7 +16,6 @@
 //
 // GTMOAuth2ViewControllerTouch.m
 //
-
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
 
@@ -333,12 +332,14 @@ static GTMOAuth2Keychain* gGTMOAuth2DefaultKeychain = nil;
     }
     return NO;
   }
-
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtautological-pointer-compare"
   if (accessibility == NULL
       && &kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly != NULL) {
     accessibility = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly;
   }
-
+#pragma clang diagnostic pop
+    
   // make a response string containing the values we want to save
   NSString *password = [auth persistenceResponseString];
   GTMOAuth2Keychain *keychain = [GTMOAuth2Keychain defaultKeychain];
@@ -1079,11 +1080,13 @@ static Class gSignInClass = Nil;
       NSMutableDictionary *keychainQuery = [self keychainQueryForService:service account:account];
       NSData *passwordData = [password dataUsingEncoding:NSUTF8StringEncoding];
       [keychainQuery setObject:passwordData forKey:(id)kSecValueData];
-
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtautological-pointer-compare"
       if (accessibility != NULL && &kSecAttrAccessible != NULL) {
         [keychainQuery setObject:(id)accessibility
                           forKey:(id)kSecAttrAccessible];
       }
+#pragma clang diagnostic pop
       status = SecItemAdd((CFDictionaryRef)keychainQuery, NULL);
     }
   }
